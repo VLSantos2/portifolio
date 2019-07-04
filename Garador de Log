@@ -1,0 +1,124 @@
+'Propriedades
+Private caminho As String
+Private nome As String
+Private Const linha = "'-------------------------------------------------------------------------'"
+
+'Geteres e Seteres
+Private Property Get getCaminho() As String
+    getCaminho = caminho
+End Property
+
+Private Property Let setCaminho(ByVal valor As String)
+    Let caminho = valor
+End Property
+
+Private Property Get getNome() As String
+    getNome = nome
+End Property
+
+Private Property Let setNome(ByVal valor As String)
+    Let nome = valor
+End Property
+
+'Criação do arquivo
+Public Sub iniciar(ByVal path As String, ByVal fileName As String)
+
+    'Erro é uma String que recebe um log caso haja erro
+    Dim erro As String
+
+    'Seta as propridades com os valores passados pelo o usuário
+    Let setCaminho = IIf(Right(path, 1) = "\", Mid(path, Len(path) - 1), path)
+    Let setNome = fileName
+    
+    'Cria o arquivo
+    Let erro = criarArquivo
+
+    'Se houver um problema na criação do arquivo, exibe uma msg de erro
+    If erro <> "" Then msgErro msg:=erro
+    
+End Sub
+
+'Retorna uma Sring com o caminho completo do arquivo
+Public Function nomeCompleto() As String
+    Let nomeCompleto = getCaminho & "\" & getNome & ".txt"
+End Function
+
+'Abre o log
+Public Sub abrirArquivo()
+    ActiveWorkbook.FollowHyperlink nomeCompleto
+End Sub
+
+'Escreve uma nova linha no Log
+Public Sub NovaLinha(ByVal txt As String, Optional ByVal linhaAntes As Boolean, _
+     Optional ByVal linhaDepois As Boolean)
+
+    'Caso haja erro, escreverei-o nessa variável
+    Dim erro As String
+
+    On Error Resume Next
+    
+    'Se o usuário deseja colocar uma linha antes, escrevo essa linha
+    If linhaAntes Then erro = escrever(linha)
+
+    'Escrevo a mensagem
+    erro = IIf(erro <> vbNullString, escrever(txt), erro)
+    
+    'Se o usuário deseja colocar uma linha depois, escrevo essa linha
+    If linhaDepois Then erro = IIf(erro <> vbNullString, escrever(linha), erro)
+    
+    'Se teve algum erro, exibo uma msg
+    If erro <> vbNullString Then msgErro msg:=erro
+
+End Sub
+
+'Função que altera o LOG
+Private Function escrever(ByVal txt As String) As String
+
+    On Error Resume Next
+
+    'Limpo os errors
+    Err.Clear
+
+    'Abro o arquivo
+    Open getCaminho & "\" & getNome & ".txt" For Append As #1
+    
+        'Escrevo a msg
+        Print #1, IIf(txt <> linha, _
+            Format(Now(), "dd-mm-yyyy HH:MM:SS") & " - " _
+                , "") & txt
+
+    'Fecho o arquivo
+    Close #1
+
+    'Retorno o erro registrado caso haja
+    escrever = Err.Description
+
+End Function
+
+'Função que cria o LOG
+Private Function criarArquivo() As String
+
+    Dim fso, fsoTxt As Object
+
+    On Error Resume Next
+
+    'Limpo os erros
+    Err.Clear
+
+    'Crio o arquivo
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set fsoTxt = fso.CreateTextFile(getCaminho & "\" & getNome & ".txt")
+
+    'Fecho-o
+    fsoTxt.Close
+
+    'Retorno o erro caso haja
+    criarArquivo = Err.Description
+
+End Function
+
+'Exibe msg de erro
+Private Sub msgErro(ByVal msg As String)
+    MsgBox "Erro: " & msg & vbCrLf _
+        & "Tente novamente.", vbCritical
+End Sub
