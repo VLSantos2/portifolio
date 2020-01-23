@@ -1,0 +1,85 @@
+'// ** -------------- IMPORTANT / IMPORTANTE --------------- ** \\'
+'|| Autor: Vitor Luiz dos Santos || Data: 17/01/2020            ||'
+'|| Author: Vitor Luiz dos Santos || Date: 01/17/2020           ||'
+'\\ ** ----------------------------------------------------- ** //'
+
+Private DB As ADODB.Connection
+Private RS As ADODB.Recordset
+Private CMD As ADODB.Command
+Private START As Boolean
+
+'// ** -------------- IMPORTANT / IMPORTANTE --------------- ** \\'
+'|| ATIVE 'Microsoft ActiveX Data Objects 2.X Library' Antes    ||'
+'|| ACTIVE 'Microsoft ActiveX Data Objects 2.X Library' Before  ||'
+'\\ ** ----------------------------------------------------- ** //'
+
+'// ** --------------------- How To Use / Maneira de Usar --------------------- ** \\'
+'|| Dim Con as Connection, Result as Variant                                          ||'
+'|| SET Con = New Connection                                                          ||'
+'||                                                                                   ||'
+'|| Con.OpenConnection "serverName / NomeDoServidor", "DataBaseName / nomeDaDataBase" ||'
+'|| 'or                                                                               ||'
+'|| Con.OpenConnection2 "nomeDoServidor", "nomeDaDataBase", "usuario", "senha"        ||'
+'|| Con.ExecuteCmd "Select [...]" || "Update [...]" || "Delete [...]" || [...]        ||'
+'|| Let Result = CON.ReadRS()                                                         ||'
+'|| CON.CloseConnection                                                               ||'
+'\\ ** --------------------------------------------------------------------------- ** //'
+    
+' Class Initialize / Inicialização da Classe
+Private Sub Class_Initialize()
+    Set mDataBase = New ADODB.Connection
+    Set mRS = New ADODB.Recordset
+    Set mCmd = New ADODB.Command
+End Sub
+
+'If you're using a connection that DON'T NEED password, how using windows authentication
+'Se você estiver usando uma conexão que não precisa de senha, como autenticação do windowns
+Public Sub OpenConnection(ByVal pServer As String, ByVal pCatalog As String)
+    Call mDataBase.Open("Provider=SQLOLEDB;Initial Catalog=" & pCatalog & ";Data Source=" & pServer & ";Integrated Security=SSPI")
+    mCmd.ActiveConnection = mDataBase
+End Sub
+
+'If you're using a connection that NEED password, how using windows authentication
+Public Sub OpenConnection2(ByVal pServer As String, ByVal pCatalog As String, ByVal pUser As String, ByVal pPsw As String)
+    Call mDataBase.Open("Provider=SQLOLEDB;Initial Catalog=" & pCatalog & ";Data Source=" & pServer & ";Integrated Security=SSPI;User ID=" & pUser & ";Password=" & pPsw)
+    mCmd.ActiveConnection = mDataBase
+End Sub
+Public Sub ExecuteCmd(sql As String)
+    mCmd.CommandText = sql
+    Set mRS = mCmd.Execute
+End Sub
+Public Function ReadRS() As Variant
+    Dim result As Variant, tam As Long
+    Let tam = -1
+    'Enquanto tiver linhas no resultado
+    Do While Not (mRS.EOF)
+        'Aumenta o tamanho
+        Let tam = tam + 1
+        'Se for maior do que 0 (primeira posicção), redimensiona preservando os valores, se não, só redimensiona
+        If tam > 0 Then ReDim Preserve result(tam) Else ReDim result(tam)
+        'Pega o valor
+        Let result(tam) = mRS.Fields(0).value
+        'Se tiver mais de uma coluna de resultado, ele concatena usando como delimitador "$;$"
+        For i = 1 To mRS.Fields.Count - 1
+            Let result(tam) = result(tam) & "$;$" & mRS.Fields(i).value
+        Next i
+        'Se tiver mais de uma coluna, então ele usa o Split para aumentar o array
+        If InStr(result(tam), "$;$") > 0 Then Let result(tam) = Split(result(tam), "$;$")
+        'Vai pro próximo
+        mRS.MoveNext
+    Loop
+    'Retorna o array
+    Let ReadRS = result
+End Function
+Public Sub CloseConnection()
+    'Fecha conexão
+    Call mDataBase.Close
+    Set mRS = Nothing
+    Set mCmd = Nothing
+    Set mDataBase = Nothing
+End Sub
+
+Private Sub Class_Terminate()
+    On Error Resume Next
+    CloseConnection
+End Sub
